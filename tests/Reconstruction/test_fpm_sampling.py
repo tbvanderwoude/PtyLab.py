@@ -7,6 +7,7 @@ from PtyLab.ExperimentalData.ExperimentalData import ExperimentalData
 from PtyLab.Monitor.Monitor import Monitor
 from PtyLab.Params.Params import Params
 from PtyLab.Reconstruction.Reconstruction import Reconstruction
+from PtyLab.utils.visualisation import plotExtent
 
 
 @pytest.fixture
@@ -60,7 +61,7 @@ def test_monitor_plots_fpm_object_with_fpm_pixel_size(fpm_reconstruction):
     )
 
 
-def test_monitor_plots_cpm_object_with_dxo(generate_simu_hdf5):
+def test_monitor_plots_cpm_object_with_dxo(_):
     data = ExperimentalData("example:simulation_cpm")
     reconstruction = Reconstruction(data, Params())
 
@@ -68,3 +69,54 @@ def test_monitor_plots_cpm_object_with_dxo(generate_simu_hdf5):
     monitor.reconstruction = reconstruction
 
     assert_allclose(monitor.objectPixelSize, reconstruction.dxo)
+
+
+def test_fpm_pupil_sampling_matches_the_numerical_aperture(fpm_reconstruction):
+    """The pupil grid step is what puts the NA cut-off where the code puts it."""
+    reconstruction = fpm_reconstruction
+    assert_allclose(reconstruction.dfp, 1 / (reconstruction.Np * reconstruction.dxp))
+
+    # radius of the aperture, in pixels, derived two independent ways
+    assert_allclose(
+        (reconstruction.NA / reconstruction.wavelength) / reconstruction.dfp,
+        (reconstruction.data.entrancePupilDiameter / 2) / reconstruction.dxp,
+    )
+
+
+def test_monitor_plots_fpm_pupil_in_reciprocal_units(fpm_reconstruction):
+    """For FPM the probe panel shows the pupil, which lives in Fourier space."""
+    monitor = Monitor()
+    monitor.reconstruction = fpm_reconstruction
+
+    assert monitor.probeLabel == "Pupil estimate"
+    assert monitor.probeAxisUnit == "1/um"
+    assert_allclose(monitor.probePixelSize, fpm_reconstruction.dfp)
+
+    # the axis spans the bandwidth the low-resolution grid can carry, 1 / dxp
+    assert_allclose(
+        fpm_reconstruction.Np * monitor.probePixelSize, 1 / fpm_reconstruction.dxp
+    )
+
+
+def test_monitor_probe_panel_unchanged_for_cpm(_):
+    """CPM reconstructs a real-space probe, so that panel must not move."""
+    data = ExperimentalData("example:simulation_cpm")
+    reconstruction = Reconstruction(data, Params())
+
+    monitor = Monitor()
+    monitor.reconstruction = reconstruction
+
+    assert monitor.probeLabel == "Probe estimate"
+    assert monitor.probeAxisUnit == "mm"
+    assert_allclose(monitor.probePixelSize, reconstruction.dxp)
+
+
+def test_only_reciprocal_axes_are_centred_on_zero(_):
+    """Real-space extents keep the historical corner origin."""
+    shape = (8, 8)
+
+    assert plotExtent(2e-6, "mm", shape) == [0, 2e-6 * 8 * 1e3, 2e-6 * 8 * 1e3, 0]
+
+    left, right, bottom, top = plotExtent(3e3, "1/um", shape)
+    assert left == -right and top == -bottom
+    assert_allclose(right, 3e3 * 8 * 1e-6 / 2)
