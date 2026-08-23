@@ -61,7 +61,7 @@ def test_monitor_plots_fpm_object_with_fpm_pixel_size(fpm_reconstruction):
     )
 
 
-def test_monitor_plots_cpm_object_with_dxo(_):
+def test_monitor_plots_cpm_object_with_dxo(generate_simu_hdf5):
     data = ExperimentalData("example:simulation_cpm")
     reconstruction = Reconstruction(data, Params())
 
@@ -98,7 +98,7 @@ def test_monitor_plots_fpm_pupil_in_reciprocal_units(fpm_reconstruction):
     )
 
 
-def test_monitor_probe_panel_unchanged_for_cpm(_):
+def test_monitor_probe_panel_unchanged_for_cpm(generate_simu_hdf5):
     """CPM reconstructs a real-space probe, so that panel must not move."""
     data = ExperimentalData("example:simulation_cpm")
     reconstruction = Reconstruction(data, Params())
@@ -111,7 +111,7 @@ def test_monitor_probe_panel_unchanged_for_cpm(_):
     assert_allclose(monitor.probePixelSize, reconstruction.dxp)
 
 
-def test_only_reciprocal_axes_are_centred_on_zero(_):
+def test_only_reciprocal_axes_are_centred_on_zero(generate_simu_hdf5):
     """Real-space extents keep the historical corner origin."""
     shape = (8, 8)
 
