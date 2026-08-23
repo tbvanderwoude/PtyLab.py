@@ -663,6 +663,11 @@ class Reconstruction(object):
         return self.No * self.dxo_fpm
 
     @property
+    def dfp(self):
+        """Spatial-frequency pixel size of the probe grid, 1 / Lp."""
+        return 1 / self.Lp
+
+    @property
     def xo(self):
         """object coordinates 1D"""
         try:
